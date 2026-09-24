@@ -110,7 +110,10 @@ public static class HtmlReportGenerator
             h.Append($"<span class=\"badge cat\">{E(f.Rule.Category)}</span>");
             var impact = f.ImpactMaxPct < 1 ? "little measurable change expected here"
                 : $"expected +{f.ImpactMinPct:0.#}–{f.ImpactMaxPct:0.#}% {E(f.Rule.Impact.Metric)}";
-            h.Append($"<span class=\"impact\">{impact}{(f.Rule.Validated ? "" : " <i title=\"Estimated range; not yet validated with before/after testing\">(estimate)</i>")}</span>");
+            var basis = f.Rule.Validated ? ""
+                : f.Rule.Evidence.Count > 0 ? $" <i title=\"Estimated range, informed by {f.Rule.Evidence.Count} real before/after test(s) but not yet fully validated\">(estimate · {f.Rule.Evidence.Count} real test{(f.Rule.Evidence.Count == 1 ? "" : "s")})</i>"
+                : " <i title=\"Estimated range; not yet validated with before/after testing\">(estimate)</i>";
+            h.Append($"<span class=\"impact\">{impact}{basis}</span>");
             h.Append("</div>");
             h.Append($"<p class=\"evidence\"><b>What we measured:</b> {E(f.Hit.Evidence)}</p>");
             if (f.Hit.Details is { Count: > 0 })
@@ -135,8 +138,12 @@ public static class HtmlReportGenerator
         Row(h, "Frame-to-frame change (avg)", $"{st.MeanAbsDeltaMs:0.00} ms");
         Row(h, "Stutter frames", $"{st.StutterCount}");
         if (st.GpuBusyRatio is double r) Row(h, "GPU busy share of frame", $"{r:P0}");
-        Row(h, "Presentation mode", mode);
-        Row(h, "Process", $"{cap.Application} (PID {cap.ProcessId})");
+        if (mode != "Unknown") Row(h, "Presentation mode", mode);
+        if (cap.ProcessId > 0) Row(h, "Process", $"{cap.Application} (PID {cap.ProcessId})");
+        Row(h, "Measured with", CaptureFormats.Describe(d.Session.Info.CaptureFormat));
+        if (d.Session.Info.GameSettings is { } settings)
+            foreach (var (label, value) in CyberpunkBenchmarkParser.KeySettings(settings))
+                Row(h, label, value);
         h.Append("</table><table>");
         if (t != null)
         {
@@ -160,7 +167,7 @@ public static class HtmlReportGenerator
         }
         else
         {
-            Row(h, "Telemetry", "Not available: this session was imported from a PresentMon CSV, so clock/temperature/background checks were skipped.");
+            Row(h, "Telemetry", "Not available: this session was imported from existing logs, so clock, temperature and background-load checks were skipped.");
         }
         if (cap.OtherSources.Count > 0)
             Row(h, "Other apps presenting frames", string.Join(", ", cap.OtherSources.OrderByDescending(x => x.Value).Take(5).Select(x => x.Key)));

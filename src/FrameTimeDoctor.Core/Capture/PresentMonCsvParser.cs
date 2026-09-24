@@ -10,7 +10,8 @@ public static class PresentMonCsvParser
 {
     // Present-to-present interval is the frame time players feel; MsBetweenAppStart is the fallback.
     static readonly string[] FrameTimeColumns = { "MsBetweenPresents", "FrameTime", "MsBetweenAppStart" };
-    static readonly string[] CpuStartMsColumns = { "CPUStartTime", "CPUStartQPCTime" };
+    // 2.6 console output uses CPUStartTimeInMs (and TimeInMs for the present time); older 2.x uses CPUStartTime.
+    static readonly string[] CpuStartMsColumns = { "CPUStartTimeInMs", "CPUStartTime", "CPUStartQPCTime", "TimeInMs" };
     static readonly string[] DisplayedColumns = { "DisplayedTime", "MsBetweenDisplayChange" };
     static readonly string[] CpuBusyColumns = { "MsCPUBusy", "CPUBusy" };
     static readonly string[] GpuBusyColumns = { "MsGPUBusy", "GPUBusy" };

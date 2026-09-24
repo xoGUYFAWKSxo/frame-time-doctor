@@ -64,8 +64,11 @@ public sealed class CoreCountRule : IRule
         int expectedThreads = cpu.Cores * 2;
         if (s.LogicalProcessors <= 0 || s.LogicalProcessors >= expectedThreads) yield break;
 
+        // Where the limit is set decides the fix. The firmware reports enabled cores to Windows, so fewer
+        // enabled cores than the spec means BIOS; msconfig/affinity can only hide threads, never cores or cache.
         bool coresOff = s.CpuCores > 0 && s.CpuCores < cpu.Cores;
-        bool smtOff = s.CpuCores > 0 && s.LogicalProcessors <= s.CpuCores;
+        bool smtOff = s.CpuCores > 0 && s.LogicalProcessors == s.CpuCores;
+        bool windowsLimit = s.CpuCores > 0 && s.LogicalProcessors != s.CpuCores && s.LogicalProcessors < s.CpuCores * 2;
         var what = (coresOff, smtOff) switch
         {
             (true, true) => $"only {s.CpuCores} of {cpu.Cores} cores are enabled and SMT (hyper-threading) is off",
@@ -73,13 +76,29 @@ public sealed class CoreCountRule : IRule
             (false, true) => "SMT (hyper-threading) is off",
             _ => "some processors are hidden from Windows",
         };
+
+        var details = new List<string>();
+        if (coresOff)
+        {
+            var ccdNote = cpu.Ccds == 2 && s.CpuCores == cpu.Cores / 2
+                ? $" and {s.CpuL3CacheKb / 1024} MB of L3 cache — exactly one of the two CCDs"
+                : "";
+            details.Add($"The motherboard firmware itself reports only {s.CpuCores} enabled cores{(s.CpuL3CacheKb > 0 ? ccdNote : "")}. " +
+                        "This is set in the BIOS: Windows settings such as msconfig cannot cause or fix it.");
+        }
+        if (smtOff)
+            details.Add("Windows sees one thread per enabled core, so SMT is disabled in the BIOS.");
+        if (windowsLimit)
+            details.Add($"The BIOS enables {s.CpuCores} cores but Windows is using {s.LogicalProcessors} processors, so Windows is limiting them: check msconfig → Boot → Advanced options → Number of processors.");
+
         // Disabling the second CCD on a dual-CCD chip is a known deliberate gaming tweak, so be less sure then.
         bool looksDeliberate = cpu.Ccds == 2 && s.CpuCores == cpu.Cores / 2;
         yield return new RuleHit(Id, looksDeliberate ? Confidence.Low : Confidence.Medium,
             $"Windows sees {s.LogicalProcessors} logical processors, but a Ryzen {cpu.Model} has {cpu.Cores} cores / {expectedThreads} threads: {what}." +
             (looksDeliberate ? " Exactly one CCD's worth of cores is active, which is sometimes done on purpose for gaming." : ""),
             ctx.CpuSideImpactScale,
-            new Dictionary<string, string> { ["cores"] = cpu.Cores.ToString(), ["threads"] = expectedThreads.ToString(), ["seen"] = s.LogicalProcessors.ToString() });
+            new Dictionary<string, string> { ["cores"] = cpu.Cores.ToString(), ["threads"] = expectedThreads.ToString(), ["seen"] = s.LogicalProcessors.ToString() },
+            details);
     }
 }
 

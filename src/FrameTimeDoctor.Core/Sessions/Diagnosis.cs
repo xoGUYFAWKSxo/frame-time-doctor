@@ -51,6 +51,19 @@ public sealed class Comparison
     public IEnumerable<string> ComparabilityWarnings()
     {
         var b = Before.Session; var a = After.Session;
+        if (b.Info.CaptureFormat != a.Info.CaptureFormat)
+            yield return $"The runs were measured differently ({CaptureFormats.Describe(b.Info.CaptureFormat)} vs " +
+                         $"{CaptureFormats.Describe(a.Info.CaptureFormat)}). Their absolute numbers aren't directly comparable.";
+        if (b.Info.GameSettings is { } bs && a.Info.GameSettings is { } @as)
+        {
+            var changed = bs.Keys.Union(@as.Keys)
+                .Where(k => !string.Equals(bs.GetValueOrDefault(k), @as.GetValueOrDefault(k), StringComparison.Ordinal))
+                .ToList();
+            if (changed.Count > 0)
+                yield return $"In-game settings changed between runs: {string.Join(", ", changed.Take(8))}{(changed.Count > 8 ? ", …" : "")}.";
+        }
+        if (b.Info.Source == "import" || a.Info.Source == "import")
+            yield return "At least one run was imported, so its system details (memory speed, drivers, power plan) were read at import time, not when it ran. \"Resolved\" findings may not reflect what actually changed.";
         if (!string.Equals(Path.GetFileNameWithoutExtension(b.Capture.Application), Path.GetFileNameWithoutExtension(a.Capture.Application), StringComparison.OrdinalIgnoreCase))
             yield return $"Different games were captured ({b.Capture.Application} vs {a.Capture.Application}).";
         var db = Before.Stats.DurationSeconds; var da = After.Stats.DurationSeconds;

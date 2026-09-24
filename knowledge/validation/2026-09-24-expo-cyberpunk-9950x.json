@@ -1,0 +1,66 @@
+{
+  // Before/after validation record for one rule on one system. See README.md in this folder.
+  "rule": "memory-profile-off",
+  "date": "2026-09-24",
+  "change": "EXPO Profile 1 enabled in BIOS: DDR5 4800 -> 6000 MT/s (Kingston KF560C32-48, 2x48 GB)",
+  "otherChanges": "None detected: same GPU driver (617.14), power plan (High performance), core count (8C/8T) and identical in-game settings in every run.",
+
+  "system": {
+    "cpu": "AMD Ryzen 9 9950X (running 8 cores / 8 threads: one CCD and SMT disabled in firmware)",
+    "motherboard": "Gigabyte X870E AORUS ELITE WIFI7, BIOS FB2d",
+    "gpu": "NVIDIA GeForce RTX 5070, driver 617.14",
+    "display": "3440x1440 @ 119 Hz"
+  },
+
+  "game": {
+    "title": "Cyberpunk 2077 2.31, built-in benchmark",
+    "settings": "Ray Tracing Ultra preset, 3440x1440, DLSS on, frame generation off, V-Sync off, no FPS cap",
+    "limitedBy": "GPU (PresentMon GPU-busy share and the tool's classifier agree)"
+  },
+
+  // Primary evidence: the game's own per-frame logs, which cover every run.
+  // 1% / 0.1% low = FPS at the 99th / 99.9th percentile frame time.
+  "gameLogRuns": {
+    "before": [
+      { "run": "benchmark_2026-09-24_11-24-23", "avgFps": 73.6, "onePctLow": 61.7, "pointOnePctLow": 46.6 },
+      { "run": "benchmark_2026-09-24_11-27-57", "avgFps": 73.8, "onePctLow": 62.8, "pointOnePctLow": 59.4 },
+      { "run": "benchmark_2026-09-24_11-30-41", "avgFps": 73.0, "onePctLow": 61.2, "pointOnePctLow": 34.9 }
+    ],
+    "after": [
+      { "run": "benchmark_2026-09-24_11-58-15", "avgFps": 75.4, "onePctLow": 64.8, "pointOnePctLow": 62.8 },
+      { "run": "benchmark_2026-09-24_12-03-52", "avgFps": 75.6, "onePctLow": 64.9, "pointOnePctLow": 63.3 }
+    ]
+  },
+
+  // Secondary: Frame Time Doctor's own 60 s PresentMon captures (only one "before" run was captured).
+  "ftdCaptures": {
+    "before": [ { "session": "20260924-113100-baseline", "avgFps": 73.0, "onePctLow": 52.5, "pointOnePctLow": 43.9 } ],
+    "after": [
+      { "session": "20260924-115834-baseline", "avgFps": 74.5, "onePctLow": 57.9, "pointOnePctLow": 48.7 },
+      { "session": "20260924-120412-baseline-2", "avgFps": 74.6, "onePctLow": 57.5, "pointOnePctLow": 48.3 }
+    ]
+  },
+
+  "result": {
+    "avgFpsDeltaPct": 2.8,
+    "onePctLowDeltaPct": 4.8,
+    "pointOnePctLow": "Before-runs ranged 34.9-59.4 fps, after-runs 62.8-63.3: rare deep hitches disappeared, but 3 runs are too few to put a number on it.",
+    "predictedByTool": "+1.2-3.8% 1% low (5-15% range x 0.25 GPU-bound discount)",
+    "verdict": "Finding correct; predicted gain too low for a GPU-bound scene."
+  },
+
+  "noise": {
+    "gameLogAfterRuns": "avg 0.3%, 1% low 0.2% apart",
+    "gameLogBeforeRuns": "1% low spread 2.6% (61.2-62.8)",
+    "ftdAfterCaptures": "avg 0.2%, 1% low 0.7% apart",
+    "note": "Consistent with the report's provisional 3% (avg) / 5% (lows) noise band for this benchmark."
+  },
+
+  "lessons": [
+    "A single before-run can mislead: the one ftd 'before' capture coincided with the worst of three runs and showed +10.4% on 1% lows versus +4.8% across all runs. Validate with 2-3 runs per side.",
+    "PresentMon and the game's log report different absolute lows (ftd ~58 vs game ~65 fps after). They measure different intervals; compare only like with like.",
+    "Memory speed still matters to frame-time consistency when GPU-bound; the generic 0.25x GPU-bound discount understates it."
+  ],
+
+  "knowledgeBaseChange": "memory-profile-off: minImpactScale 0.5 (GPU-bound estimate 2.5-7.5%, which contains the measured 4.8%). Impact range and validated=false unchanged: one system, one game."
+}

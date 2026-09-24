@@ -90,8 +90,9 @@ public sealed class Finding
     public required KbRule Rule { get; init; }
     public required RuleHit Hit { get; init; }
 
-    public double ImpactMinPct => Math.Round(Rule.Impact.MinPct * Hit.ImpactScale, 1);
-    public double ImpactMaxPct => Math.Round(Rule.Impact.MaxPct * Hit.ImpactScale, 1);
+    public double ImpactScale => Math.Max(Hit.ImpactScale, Rule.MinImpactScale);
+    public double ImpactMinPct => Math.Round(Rule.Impact.MinPct * ImpactScale, 1);
+    public double ImpactMaxPct => Math.Round(Rule.Impact.MaxPct * ImpactScale, 1);
 
     /// <summary>Expected gain discounted by how sure we are. Findings are ranked by this.</summary>
     public double Score => (ImpactMinPct + ImpactMaxPct) / 2 * Hit.Confidence switch

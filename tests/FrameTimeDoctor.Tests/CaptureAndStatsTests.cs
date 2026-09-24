@@ -39,6 +39,24 @@ public class PresentMonCsvParserTests
     }
 
     [Fact]
+    public void ParsesRealPresentMon26Output()
+    {
+        // Verbatim header and first rows from a live PresentMon 2.6.0 capture of Cyberpunk 2077.
+        const string csv = """
+            Application,ProcessID,SwapChainAddress,PresentRuntime,SyncInterval,PresentFlags,AllowsTearing,PresentMode,TimeInMs,MsBetweenSimulationStart,MsBetweenPresents,MsBetweenDisplayChange,MsInPresentAPI,MsRenderPresentLatency,MsUntilDisplayed,CPUStartTimeInMs,MsBetweenAppStart,MsCPUBusy,MsCPUWait,MsGPULatency,MsGPUTime,MsGPUBusy,MsGPUWait,MsAnimationError,AnimationTime,MsFlipDelay,MsAllInputToPhotonLatency,MsClickToPhotonLatency
+            Cyberpunk2077.exe,30656,0x225D4BB6E30,DXGI,0,512,1,Hardware: Independent Flip,28.6901,NA,8.66510000000000,13.83310000000000,0.26980000000000,23.40610000000000,23.4061,20.3133,8.6466,8.3768,0.2698,17.9498,13.8331,13.8220,0.0111,NA,20.3133,NA,NA,NA
+            Cyberpunk2077.exe,30656,0x225D4BB6E30,DXGI,0,512,1,Hardware: Independent Flip,41.0977,NA,12.40760000000000,14.05400000000000,0.25780000000000,25.05250000000000,25.0525,28.9599,12.3956,12.1378,0.2578,23.1363,14.0540,14.0420,0.0120,-5.4074,28.9599,NA,NA,NA
+            """;
+        var cap = PresentMonCsvParser.Parse(new StringReader(csv));
+        Assert.Equal(2, cap.Frames.Count);
+        Assert.Equal(20.3133, cap.Frames[0].CpuStartMs, 4);   // read from CPUStartTimeInMs, not reconstructed
+        Assert.Equal(28.9599, cap.Frames[1].CpuStartMs, 4);
+        Assert.Equal(8.6651, cap.Frames[0].FrameTimeMs, 4);
+        Assert.Equal(13.822, cap.Frames[0].GpuBusyMs!.Value, 3);
+        Assert.Equal(13.8331, cap.Frames[0].DisplayedTimeMs!.Value, 4);
+    }
+
+    [Fact]
     public void FiltersByProcessNameWithOrWithoutExtension()
     {
         var csv = string.Join('\n', CurrentHeader, Row("a.exe", 1, "0x1", 0, "5"), Row("b.exe", 2, "0x2", 0, "6"), Row("b.exe", 2, "0x2", 6, "6"));

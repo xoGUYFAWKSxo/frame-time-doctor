@@ -35,7 +35,9 @@ public static class SystemProbe
 
     static void ReadCpu(SystemSnapshot s)
     {
-        var cpu = Wmi("SELECT Name, MaxClockSpeed, NumberOfEnabledCore, NumberOfLogicalProcessors FROM Win32_Processor").First();
+        var cpu = Wmi("SELECT Name, MaxClockSpeed, NumberOfEnabledCore, NumberOfLogicalProcessors, ThreadCount, L3CacheSize FROM Win32_Processor").First();
+        s.CpuThreadCapacity = Convert.ToInt32(cpu["ThreadCount"] ?? 0);
+        s.CpuL3CacheKb = Convert.ToInt32(cpu["L3CacheSize"] ?? 0);
         s.CpuName = (cpu["Name"] as string ?? "").Trim();
         s.CpuBaseClockMhz = Convert.ToDouble(cpu["MaxClockSpeed"] ?? 0);
         s.CpuCores = Convert.ToInt32(cpu["NumberOfEnabledCore"] ?? 0);

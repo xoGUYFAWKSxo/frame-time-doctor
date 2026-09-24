@@ -20,7 +20,11 @@
         "On AM5, 6000–6400 MT/s with the memory controller clock at 1:1 (UCLK = MEMCLK) is usually the fastest configuration even if the kit is rated higher."
       ],
       "impact": { "minPct": 5, "maxPct": 15, "metric": "1% low FPS" },
-      "validated": false
+      "validated": false,
+      // Memory speed still moved 1% lows ~4.8% in a GPU-bound scene, above the generic 0.25x GPU-bound
+      // discount (1.25-3.75%). Floor the discount at 0.5x (2.5-7.5%) until more rigs are tested.
+      "minImpactScale": 0.5,
+      "evidence": ["validation/2026-09-24-expo-cyberpunk-9950x.json"]
     },
     {
       "id": "cores-disabled",
@@ -28,10 +32,12 @@
       "category": "settings",
       "why": "Your CPU has {cores} cores and {threads} threads, but Windows can only use {seen}. That usually comes from a BIOS setting (SMT, CCD control or core downcoring) or the Windows \"Number of processors\" boot option, often left over from troubleshooting or a tuning guide. Modern games spread work over many threads, and background tasks need somewhere to run without interrupting the game.",
       "fix": [
-        "Windows: press Win+R, run msconfig → Boot → Advanced options. If \"Number of processors\" is ticked, untick it, click OK and restart.",
-        "BIOS: look for SMT Control (should be Auto/Enabled), CCD Control and Downcore Control (should be Auto). On Gigabyte these are under Settings → AMD CBS → CPU Common Options / Core Watchdog.",
-        "If you disabled a CCD or SMT on purpose for a specific game, you can ignore this finding. Re-run the benchmark both ways to see which is faster on your system.",
-        "Re-run the benchmark after re-enabling to measure the difference."
+        "Read the notes above first: they say whether the limit is set in the BIOS or in Windows.",
+        "BIOS: set SMT to Auto/Enabled and CCD Control / Downcore Control to Auto. Most boards have these in two places — an overclocking page (Gigabyte: Tweaker → Advanced CPU Settings) and AMD CBS (Settings → AMD CBS → CPU Common Options). A non-Auto value in either one wins, so check both.",
+        "Also check for board-specific gaming modes that switch off a CCD and SMT for you (on Gigabyte, \"X3D Turbo Mode\" on BIOS versions that have it) and set them to Disabled/Auto.",
+        "If changes don't stick: note your EXPO setting, use \"Load Optimized Defaults\", save and reboot, then re-enable EXPO. Make sure you aren't reloading a saved BIOS profile that has the old values.",
+        "Windows (only if the notes point to Windows): press Win+R, run msconfig → Boot → Advanced options, untick \"Number of processors\", click OK and restart.",
+        "If you disabled a CCD or SMT on purpose for a specific game, you can ignore this finding. Re-run the benchmark both ways to see which is faster on your system."
       ],
       "impact": { "minPct": 0, "maxPct": 10, "metric": "1% low FPS" },
       "validated": false
