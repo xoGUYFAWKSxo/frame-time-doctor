@@ -65,6 +65,13 @@ public sealed class KbRule
     public ImpactRange Impact { get; set; } = new();
     /// <summary>False until the impact range has been confirmed with real before/after captures.</summary>
     public bool Validated { get; set; }
+    /// <summary>
+    /// Lowest impact scaling a rule's situation can apply (e.g. a GPU-bound discount). Set from validation
+    /// data when a fix proved to matter more than the generic discount assumed.
+    /// </summary>
+    public double MinImpactScale { get; set; }
+    /// <summary>Validation records (knowledge/validation/*.json) that informed this rule's numbers.</summary>
+    public List<string> Evidence { get; set; } = new();
 }
 
 public sealed class ImpactRange

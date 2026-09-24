@@ -15,9 +15,27 @@ public sealed class SessionInfo
     public string? ProcessName { get; set; }
     public DateTime StartedAt { get; set; }
     public double DurationSeconds { get; set; }
-    /// <summary>"capture" (recorded by ftd) or "import" (an existing PresentMon CSV).</summary>
+    /// <summary>"capture" (recorded by ftd) or "import" (existing logs from another tool or the game).</summary>
     public string Source { get; set; } = "capture";
+    /// <summary>Which frame log the session holds; the two measure frame time differently.</summary>
+    public string CaptureFormat { get; set; } = CaptureFormats.PresentMon;
+    /// <summary>In-game graphics settings, when the log records them (Cyberpunk's summary.json does).</summary>
+    public Dictionary<string, string>? GameSettings { get; set; }
     public string ToolVersion { get; set; } = "";
+}
+
+public static class CaptureFormats
+{
+    /// <summary>PresentMon: time between presents, as the display pipeline sees it.</summary>
+    public const string PresentMon = "presentmon";
+    /// <summary>Cyberpunk 2077 benchmark log: the engine's own frame time.</summary>
+    public const string Cyberpunk = "cyberpunk";
+
+    public static string Describe(string format) => format switch
+    {
+        Cyberpunk => "Cyberpunk 2077 benchmark log (engine frame time)",
+        _ => "PresentMon (present-to-present frame time)",
+    };
 }
 
 /// <summary>
@@ -34,11 +52,14 @@ public sealed class Session
     public required SystemSnapshot System { get; init; }
     public TelemetryLog? Telemetry { get; init; }
 
-    public string CsvPath => Path.Combine(Directory, CsvFile);
+    public string CsvPath => Path.Combine(Directory,
+        Info.CaptureFormat == CaptureFormats.Cyberpunk ? CyberpunkBenchmarkParser.FramesFile : CsvFile);
     public string ReportPath => Path.Combine(Directory, ReportFile);
 
     FrameCapture? _capture;
-    public FrameCapture Capture => _capture ??= PresentMonCsvParser.Parse(CsvPath, Info.ProcessName);
+    public FrameCapture Capture => _capture ??= Info.CaptureFormat == CaptureFormats.Cyberpunk
+        ? CyberpunkBenchmarkParser.ParseFrames(CsvPath)
+        : PresentMonCsvParser.Parse(CsvPath, Info.ProcessName);
 }
 
 public static class SessionStore

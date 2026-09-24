@@ -46,7 +46,8 @@ int Help()
           ftd games                               List supported benchmark titles
           ftd capture --game <id> [options]       Run a benchmark pass on a supported title
           ftd capture --process <exe> [options]   ...or on any game by process name
-          ftd import <presentmon.csv> [options]   Diagnose an existing PresentMon capture
+          ftd import <path> [options]             Diagnose existing logs: a PresentMon CSV, a Cyberpunk
+                                                  benchmark run folder, or a whole benchmarkResults folder
           ftd analyze <session> [--baseline <session>]
           ftd list                                List recorded sessions
 
@@ -186,15 +187,32 @@ async Task<int> Capture()
 
 int Import()
 {
-    var csv = opts.Positional.ElementAtOrDefault(0) ?? throw new ArgumentException("Usage: ftd import <presentmon.csv>");
-    if (!File.Exists(csv)) throw new FileNotFoundException($"File not found: {csv}");
+    var csv = opts.Positional.ElementAtOrDefault(0) ?? throw new ArgumentException("Usage: ftd import <presentmon.csv | cyberpunk run folder | benchmarkResults folder>");
     var kb = KnowledgeBase.Load();
     // Resolve before creating the new session, or "latest" would point at the new session itself.
     var baseline = opts.Get("baseline") is string b ? SessionStore.Load(b) : null;
+    var label = opts.Get("label");
+
+    // Cyberpunk: a benchmarkResults folder (every run in it), one run folder, or a file inside a run folder.
+    var runDir = Directory.Exists(csv) ? csv : File.Exists(csv) ? Path.GetDirectoryName(Path.GetFullPath(csv))! : null;
+    if (runDir == null) throw new FileNotFoundException($"Not found: {csv}");
+    if (Directory.Exists(csv) && !CyberpunkBenchmarkParser.IsRunFolder(csv))
+    {
+        var runs = CyberpunkBenchmarkParser.FindRunFolders(csv);
+        if (runs.Count == 0) throw new ArgumentException($"No Cyberpunk benchmark runs (frames.csv + summary.json) found in {csv}.");
+        return ImportCyberpunkRuns(runs, label, kb);
+    }
+    if (CyberpunkBenchmarkParser.IsRunFolder(runDir) && (Directory.Exists(csv) || IsCyberpunkFile(csv)))
+    {
+        var imported = ImportCyberpunkRun(runDir, label, SystemProbe.Take());
+        return Report(SessionStore.Load(imported), baseline, kb);
+    }
+
+    if (!File.Exists(csv)) throw new FileNotFoundException($"File not found: {csv}");
     var process = opts.Get("process");
     var capture = PresentMonCsvParser.Parse(csv, process); // validate before creating a session
 
-    var label = opts.Get("label") ?? Path.GetFileNameWithoutExtension(csv);
+    label ??= Path.GetFileNameWithoutExtension(csv);
     var dir = SessionStore.NewDirectory(label);
     File.Copy(csv, Path.Combine(dir, Session.CsvFile));
     Out.Step("Reading system configuration (imported CSVs are assumed to come from this PC)…");
@@ -206,6 +224,48 @@ int Import()
     }, system, telemetry: null);
 
     return Report(SessionStore.Load(dir), baseline, kb);
+}
+
+static bool IsCyberpunkFile(string path) =>
+    Path.GetFileName(path) is var n &&
+    (n.Equals(CyberpunkBenchmarkParser.FramesFile, StringComparison.OrdinalIgnoreCase) ||
+     n.Equals(CyberpunkBenchmarkParser.SummaryFile, StringComparison.OrdinalIgnoreCase));
+
+string ImportCyberpunkRun(string runDir, string? label, SystemSnapshot system)
+{
+    var capture = CyberpunkBenchmarkParser.ParseFrames(Path.Combine(runDir, CyberpunkBenchmarkParser.FramesFile));
+    var summary = Path.Combine(runDir, CyberpunkBenchmarkParser.SummaryFile);
+    label ??= Path.GetFileName(runDir);
+    var dir = SessionStore.NewDirectory(label);
+    File.Copy(Path.Combine(runDir, CyberpunkBenchmarkParser.FramesFile), Path.Combine(dir, CyberpunkBenchmarkParser.FramesFile));
+    File.Copy(summary, Path.Combine(dir, CyberpunkBenchmarkParser.SummaryFile));
+    SessionStore.Save(dir, new SessionInfo
+    {
+        Label = label, GameId = "cyberpunk", GameName = "Cyberpunk 2077", ProcessName = CyberpunkBenchmarkParser.ProcessName,
+        StartedAt = CyberpunkBenchmarkParser.RunStartTime(runDir) ?? File.GetLastWriteTime(summary),
+        DurationSeconds = capture.DurationSeconds, Source = "import", CaptureFormat = CaptureFormats.Cyberpunk,
+        GameSettings = CyberpunkBenchmarkParser.ReadSettings(summary), ToolVersion = version,
+    }, system, telemetry: null);
+    return dir;
+}
+
+int ImportCyberpunkRuns(IReadOnlyList<string> runs, string? label, KnowledgeBase kb)
+{
+    Out.Step($"Importing {runs.Count} Cyberpunk benchmark runs (system details are read now, not from when each run happened)…");
+    var system = SystemProbe.Take();
+    Console.WriteLine();
+    Console.WriteLine($"  {"Run",-32}{"Avg",7}{"1% low",8}{"0.1% low",10}{"Stutters/min",14}");
+    int n = 1;
+    foreach (var run in runs)
+    {
+        var session = SessionStore.Load(ImportCyberpunkRun(run, label != null ? $"{label}-{n++}" : null, system));
+        var d = Diagnosis.Run(session, kb);
+        File.WriteAllText(session.ReportPath, HtmlReportGenerator.Generate(d));
+        Console.WriteLine($"  {Path.GetFileName(run),-32}{d.Stats.AvgFps,7:0.0}{d.Stats.OnePercentLowFps,8:0.0}{d.Stats.PointOnePercentLowFps,10:0.0}{d.Stats.StuttersPerMinute,14:0.0}");
+    }
+    Console.WriteLine();
+    Console.WriteLine("  Compare any two with: ftd analyze <session> --baseline <session>   (ids: ftd list)");
+    return 0;
 }
 
 int Analyze()
@@ -220,7 +280,7 @@ int List()
     var sessions = SessionStore.List();
     if (sessions.Count == 0) { Console.WriteLine($"No sessions yet in {SessionStore.Root}."); return 0; }
     foreach (var s in sessions)
-        Console.WriteLine($"  {s.Id,-40} {s.GameName ?? s.ProcessName,-24} {s.DurationSeconds,4:0}s  {s.Source}");
+        Console.WriteLine($"  {s.Id,-48} {s.GameName ?? s.ProcessName,-18} {s.DurationSeconds,4:0}s  {s.Source,-8} {s.CaptureFormat}");
     return 0;
 }
 
@@ -294,7 +354,9 @@ void PrintFindings(IReadOnlyList<Finding> findings, bool detailed)
         Console.WriteLine($"  {i++}. {f.Title}");
         Console.ResetColor();
         Console.WriteLine($"     {f.Hit.Confidence} confidence · expected +{f.ImpactMinPct:0.#}–{f.ImpactMaxPct:0.#}% {f.Rule.Impact.Metric}{(f.Rule.Validated ? "" : " (estimate)")}");
-        if (detailed) Console.WriteLine($"     {f.Hit.Evidence}");
+        if (!detailed) continue;
+        Console.WriteLine($"     {f.Hit.Evidence}");
+        foreach (var d in f.Hit.Details ?? Array.Empty<string>()) Console.WriteLine($"       • {d}");
     }
 }
 

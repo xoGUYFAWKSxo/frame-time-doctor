@@ -11,6 +11,10 @@ public sealed class SystemSnapshot
     /// <summary>Enabled cores and logical processors as Windows sees them (after BIOS/msconfig limits).</summary>
     public int CpuCores { get; set; }
     public int LogicalProcessors { get; set; } = Environment.ProcessorCount;
+    /// <summary>Threads the package supports per SMBIOS, regardless of what's enabled.</summary>
+    public int CpuThreadCapacity { get; set; }
+    /// <summary>L3 the firmware reports. Halves on Ryzen when a CCD is disabled.</summary>
+    public int CpuL3CacheKb { get; set; }
 
     public string? Motherboard { get; set; }
     public string? BiosVersion { get; set; }

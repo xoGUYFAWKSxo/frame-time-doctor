@@ -25,6 +25,7 @@ src/FrameTimeDoctor.Cli/bin/Debug/net8.0-windows10.0.19041.0/ftd.exe probe
 | `ftd capture --game cyberpunk` | Waits for the game, starts on **Ctrl+Shift+F10** (or Enter), captures frames + telemetry, writes the report | **Yes** |
 | `ftd capture --process X.exe --baseline latest --label expo-on` | Re-test against an earlier pass; report shows deltas and resolved findings | **Yes** |
 | `ftd import file.csv [--baseline <id>]` | Diagnose an existing PresentMon CSV (no telemetry, so fewer checks) | No |
+| `ftd import "…\Cyberpunk 2077\benchmarkResults"` | Import every Cyberpunk benchmark run the game has logged (or one `benchmark_*` folder), including its graphics settings | No |
 | `ftd analyze <id\|latest> [--baseline <id>]` | Re-run diagnosis on a stored session (e.g. after a knowledge-base update) | No |
 | `ftd list` | Lists stored sessions | No |
 
@@ -79,13 +80,16 @@ shows CPU-bound clock dips (AMD recommends Balanced on Ryzen).
 2. **Rules table v0** — done. 11 checks. Impact ranges are **provisional** (`"validated": false`) until milestone 5.
 3. **Report generator** — done. Baseline metrics, ranked findings, before/after deltas, resolved findings, noise band.
 4. **Benchmark harness** — first cut. Three profiles (Cyberpunk 2077, Shadow of the Tomb Raider, CS2), hotkey start, fixed duration.
-5. **Self-test on real rigs** — next.
+5. **Self-test on real rigs** — started. First record: EXPO on a 9950X + RTX 5070 in Cyberpunk 2077
+   ([knowledge/validation/](knowledge/validation/)). The finding was correct; the GPU-bound estimate was too low
+   (+4.8% measured on 1% lows vs +1.2–3.8% predicted), so the memory rule's GPU-bound discount now has a floor.
+   Comparisons flag runs whose in-game settings or measurement source differ.
 
 ## Known gaps / next steps
 
-- **Run a real capture** in an elevated terminal and check the parser against live PresentMon 2.6 output.
-- **Validate every rule** with before/after captures, then set `validated: true` and real impact ranges.
-  Measure run-to-run noise (3+ identical passes) to replace the provisional 3% / 5% noise band.
+- **Validate every rule** with before/after runs (2–3 per side; see [knowledge/validation/README.md](knowledge/validation/README.md)),
+  then set `validated: true` and real impact ranges. Early noise data (under 1% between identical Cyberpunk runs)
+  supports the provisional 3% / 5% noise band, but it's one game on one system.
 - **CPU temperature**: Windows has no driver-free Ryzen temperature API, so CPU throttling is inferred from
   clock drift. Options: read an HWiNFO shared-memory/CSV log, or ship a signed sensor driver (v2).
 - **RAM timings** (not just speed) need SMU/SPD access; the part-number decoder covers major vendors only

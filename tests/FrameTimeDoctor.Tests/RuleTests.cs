@@ -113,11 +113,23 @@ public class ConfigurationRuleTests
     [Fact]
     public void FlagsDisabledCoresAndSmt()
     {
-        var sys = Rig(s => { s.CpuCores = 8; s.LogicalProcessors = 8; });
+        // Matches the author's rig: firmware reports 8 cores, 32 MB L3 (one CCD), no SMT.
+        var sys = Rig(s => { s.CpuCores = 8; s.LogicalProcessors = 8; s.CpuThreadCapacity = 32; s.CpuL3CacheKb = 32768; });
         var f = Assert.Single(Run(Context(system: sys)));
         Assert.Equal("cores-disabled", f.Rule.Id);
         Assert.Contains("only 8 of 16 cores are enabled and SMT", f.Hit.Evidence);
         Assert.Equal(Confidence.Low, f.Hit.Confidence); // exactly one CCD: possibly deliberate
+        Assert.Contains(f.Hit.Details!, d => d.Contains("32 MB of L3") && d.Contains("msconfig cannot"));
+        Assert.Contains(f.Hit.Details!, d => d.Contains("SMT is disabled in the BIOS"));
+        Assert.DoesNotContain(f.Hit.Details!, d => d.Contains("Windows is limiting"));
+    }
+
+    [Fact]
+    public void AttributesHiddenThreadsToWindowsWhenBiosEnablesAllCores()
+    {
+        var f = Assert.Single(Run(Context(system: Rig(s => { s.CpuCores = 16; s.LogicalProcessors = 24; }))));
+        Assert.Contains(f.Hit.Details!, d => d.Contains("Windows is limiting") && d.Contains("msconfig"));
+        Assert.DoesNotContain(f.Hit.Details!, d => d.Contains("BIOS: Windows settings"));
     }
 
     [Fact]
