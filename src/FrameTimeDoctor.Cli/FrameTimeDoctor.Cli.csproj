@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ftd</AssemblyName>
+    <RootNamespace>FrameTimeDoctor.Cli</RootNamespace>
+    <Version>0.1.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FrameTimeDoctor.Core\FrameTimeDoctor.Core.csproj" />
+  </ItemGroup>
+
+  <!-- Knowledge base and bundled PresentMon ship next to the executable. -->
+  <ItemGroup>
+    <None Include="..\..\knowledge\**\*" LinkBase="knowledge" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\tools\PresentMon.exe" Link="tools\PresentMon.exe" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\tools\PresentMon-LICENSE.txt" Link="tools\PresentMon-LICENSE.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

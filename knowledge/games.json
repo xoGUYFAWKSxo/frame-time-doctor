@@ -1,0 +1,48 @@
+[
+  // Benchmark harness: supported titles and a repeatable sequence for each.
+  // Anti-cheat status must be re-checked per title before shipping (see PROJECT_PLAN risks).
+  {
+    "id": "cyberpunk",
+    "name": "Cyberpunk 2077",
+    "process": "Cyberpunk2077.exe",
+    "mode": "built-in",
+    "durationSeconds": 60,
+    "setup": [
+      "Use the same graphics preset and resolution for every pass (write them down).",
+      "Close the launcher overlays you don't need.",
+      "Main menu → Settings → Graphics → Run Benchmark (or Main menu → Benchmark on newer versions)."
+    ],
+    "startCue": "Press the hotkey the moment the benchmark camera starts moving after the loading screen.",
+    "antiCheat": "none",
+    "notes": "The built-in run lasts about 65 seconds; the 60-second capture fits inside it."
+  },
+  {
+    "id": "sottr",
+    "name": "Shadow of the Tomb Raider",
+    "process": "SOTTR.exe",
+    "mode": "built-in",
+    "durationSeconds": 45,
+    "setup": [
+      "Use the same graphics preset and resolution for every pass.",
+      "Options → Graphics Settings → Benchmark (bottom of the screen)."
+    ],
+    "startCue": "Press the hotkey when the first scene (the village) fades in.",
+    "antiCheat": "none",
+    "notes": "The benchmark has three scenes; 45 seconds covers the first two, which are the most CPU-heavy."
+  },
+  {
+    "id": "cs2",
+    "name": "Counter-Strike 2",
+    "process": "cs2.exe",
+    "mode": "scripted",
+    "durationSeconds": 60,
+    "setup": [
+      "Subscribe to a CS2 FPS benchmark map on Steam Workshop (search \"FPS BENCHMARK\") and use the same map for every pass.",
+      "Launch CS2 → Play → Workshop Maps → select the benchmark map and start it offline.",
+      "Keep video settings identical between passes."
+    ],
+    "startCue": "Press the hotkey when the camera fly-through begins.",
+    "antiCheat": "VAC (user-mode). PresentMon only reads ETW events and doesn't touch the game process; still, verify before promoting.",
+    "notes": "Very CPU-bound on most systems, which makes it the most sensitive title for memory/CPU findings."
+  }
+]
