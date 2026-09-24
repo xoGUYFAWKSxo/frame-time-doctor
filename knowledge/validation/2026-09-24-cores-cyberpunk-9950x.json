@@ -1,0 +1,70 @@
+{
+  // Before/after validation record for one rule on one system. See README.md in this folder.
+  "rule": "cores-disabled",
+  "date": "2026-09-24",
+  "change": "Re-enabled the second CCD and SMT: 8 cores / 8 threads / 32 MB L3 -> 16 cores / 32 threads / 64 MB L3",
+  "otherChanges": "EXPO High Bandwidth Support was also turned on in the same BIOS session, so its effect can't be separated from the core change. Unchanged: EXPO 6000 MT/s, GPU driver 617.14, power plan, BIOS FB2d, identical in-game settings (no comparability warnings from ftd).",
+
+  "system": {
+    "cpu": "AMD Ryzen 9 9950X",
+    "motherboard": "Gigabyte X870E AORUS ELITE WIFI7, BIOS FB2d",
+    "memory": "2x48 GB Kingston KF560C32-48, EXPO 6000 MT/s",
+    "gpu": "NVIDIA GeForce RTX 5070, driver 617.14",
+    "display": "3440x1440 @ 119 Hz"
+  },
+
+  "game": {
+    "title": "Cyberpunk 2077 2.31, built-in benchmark",
+    "settings": "Ray Tracing Ultra preset, 3440x1440, DLSS on, frame generation off, V-Sync off, no FPS cap",
+    "limitedBy": "GPU (PresentMon GPU-busy share on the earlier captures of the same scene and settings)"
+  },
+
+  // What the rule diagnosed, and whether the diagnosis held up (separate from the performance impact).
+  "diagnosis": {
+    "reported": "Firmware reports 8 enabled cores and 32 MB L3 (one CCD) with SMT off; set in BIOS, not fixable from Windows.",
+    "whatHappened": "Changing Windows settings (msconfig) had no effect, as predicted. Changing SMT/CCD settings in the BIOS also had no effect across two reboots: another saved setting was overriding them. Load Optimized Defaults restored 16C/32T/64 MB immediately; re-enabling EXPO afterwards did not disable cores again.",
+    "verdict": "Diagnosis correct, including firmware vs Windows attribution. The 'load optimized defaults if changes don't stick' fix step was the one that worked."
+  },
+
+  // Game's own per-frame logs. 1% / 0.1% low = FPS at the 99th / 99.9th percentile frame time.
+  "gameLogRuns": {
+    "before": [
+      { "run": "benchmark_2026-09-24_11-58-15", "avgFps": 75.4, "onePctLow": 64.8, "pointOnePctLow": 62.8 },
+      { "run": "benchmark_2026-09-24_12-03-52", "avgFps": 75.6, "onePctLow": 64.9, "pointOnePctLow": 63.3 }
+    ],
+    "after": [
+      { "run": "benchmark_2026-09-24_12-54-31", "avgFps": 75.4, "onePctLow": 65.5, "pointOnePctLow": 63.1 },
+      { "run": "benchmark_2026-09-24_12-56-27", "avgFps": 75.4, "onePctLow": 65.4, "pointOnePctLow": 63.3 }
+    ]
+  },
+
+  "gameLogPairwise": {
+    "pairs": 4,
+    "avgFpsDeltaPct": { "min": -0.3, "max": 0.0 },
+    "onePctLowDeltaPct": { "min": 0.7, "max": 1.0 },
+    "pointOnePctLowDeltaPct": { "min": -0.4, "max": 0.8 }
+  },
+
+  "result": {
+    "avgFpsDeltaPct": -0.1,
+    "onePctLowDeltaPct": 0.9,
+    "pointOnePctLowDeltaPct": 0.2,
+    "predictedByTool": "+0-2.5% 1% low in a GPU-bound run (0-10% range x 0.25 GPU-bound discount). Probe-only (no capture) showed +0-6% because the bottleneck was unknown.",
+    "verdict": "Measured change is within run-to-run noise and inside the predicted GPU-bound range. Prediction correct for this scene; says nothing yet about CPU-bound games."
+  },
+
+  "noise": {
+    "gameLogAfterRuns": "avg 0.0%, 1% low 0.2% apart",
+    "note": "The 12:54 run was the first after launching the game and matched the 12:56 run, so shader warm-up didn't affect it."
+  },
+
+  "lessons": [
+    "In a GPU-bound scene, doubling cores and enabling SMT made no measurable difference: the GPU-bound discount works for this rule.",
+    "A 'no change' result is still a validation: it shows the tool doesn't overpromise when the bottleneck is elsewhere.",
+    "Two BIOS changes (cores + EXPO High Bandwidth Support) were made together; the combined effect was under 1%, so neither is large here, but they can't be separated.",
+    "When BIOS changes don't stick, a saved setting elsewhere is overriding them; Load Optimized Defaults is the reliable reset.",
+    "To measure this rule's real range, test a CPU-bound game (e.g. CS2) or lower resolution / heavier upscaling."
+  ],
+
+  "knowledgeBaseChange": "cores-disabled: evidence added. No numeric change: the measured +0.9% sits inside the GPU-bound estimate. validated=false until a CPU-bound test exists."
+}
