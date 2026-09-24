@@ -3,4 +3,6 @@ obj/
 .vs/
 *.user
 TestResults/
-sessions/
+# Local capture output only. Anchored to the root: git on Windows matches case-insensitively,
+# and an unanchored "sessions/" also swallowed src/FrameTimeDoctor.Core/Sessions/.
+/sessions/
