@@ -41,6 +41,28 @@
     ]
   },
 
+  // The tool's own before/after report: `ftd analyze 20260924-115834-baseline --baseline 20260924-113100-baseline`.
+  // Both sessions were captured live, so each system snapshot shows the memory speed at the time of the run.
+  "ftdComparison": {
+    "before": "20260924-113100-baseline (EXPO off, 4800 MT/s)",
+    "after": "20260924-115834-baseline (EXPO on, 6000 MT/s)",
+    "avgFpsDeltaPct": 2.0,
+    "onePctLowDeltaPct": 10.4,
+    "pointOnePctLowDeltaPct": 10.8,
+    "memoryFinding": "Reported as resolved: present in the before-run diagnosis, absent after. The remaining finding (cores-disabled) was unchanged, as expected.",
+    "comparabilityWarnings": "None: same game, capture length, resolution and refresh rate.",
+    "caveat": "Single before-run, which was the worst of the three EXPO-off runs in the game's own log. The 1% low delta overstates the gain; use the multi-run result below."
+  },
+
+  // Every EXPO-on game-log run against every EXPO-off one (`ftd analyze <on> --baseline <off>` after `ftd import`).
+  "gameLogPairwise": {
+    "pairs": 6,
+    "avgFpsDeltaPct": { "min": 2.1, "max": 3.6 },
+    "onePctLowDeltaPct": { "min": 3.3, "max": 6.1 },
+    "pointOnePctLowDeltaPct": { "min": 5.8, "max": 81.5 },
+    "note": "Every pairing improves on every metric. The 0.1% low range is driven by the 11:30 before-run's deep hitch, not by EXPO scaling that far."
+  },
+
   "result": {
     "avgFpsDeltaPct": 2.8,
     "onePctLowDeltaPct": 4.8,
