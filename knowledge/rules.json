@@ -40,7 +40,9 @@
         "If you disabled a CCD or SMT on purpose for a specific game, you can ignore this finding. Re-run the benchmark both ways to see which is faster on your system."
       ],
       "impact": { "minPct": 0, "maxPct": 10, "metric": "1% low FPS" },
-      "validated": false
+      "validated": false,
+      // GPU-bound Cyberpunk: +0.9% measured, inside the 0-2.5% GPU-bound estimate. Needs a CPU-bound test.
+      "evidence": ["validation/2026-09-24-cores-cyberpunk-9950x.json"]
     },
     {
       "id": "power-plan",
